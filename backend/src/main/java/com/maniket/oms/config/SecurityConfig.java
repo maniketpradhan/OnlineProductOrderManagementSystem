@@ -100,7 +100,7 @@ public CorsConfigurationSource corsConfigurationSource() {
 
     CorsConfiguration configuration = new CorsConfiguration();
 
-    configuration.setAllowedOrigins(List.of("http://localhost:4200"));
+    configuration.setAllowedOrigins(List.of("http://localhost:4200","https://online-product-order-management-system-fo4km2lzl.vercel.app"));
 
     configuration.setAllowedMethods(List.of(
             "GET",
@@ -120,4 +120,5 @@ public CorsConfigurationSource corsConfigurationSource() {
 
     return source;
 }
+
 }
