@@ -50,7 +50,7 @@ public class SecurityConfig {
             throws Exception {
 
         http
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .csrf(csrf -> csrf.disable())
 
@@ -101,7 +101,7 @@ public CorsConfigurationSource corsConfigurationSource() {
 
     CorsConfiguration configuration = new CorsConfiguration();
 
-    configuration.setAllowedOriginsPatterns(List.of("http://localhost:4200","https://*.vercel.app"));
+    configuration.setAllowedOriginPatterns(List.of("http://localhost:4200","https://*.vercel.app"));
 
     configuration.setAllowedMethods(List.of(
             "GET",
@@ -111,7 +111,7 @@ public CorsConfigurationSource corsConfigurationSource() {
             "OPTIONS"));
 
     configuration.setAllowedHeaders(List.of("*"));
-
+    configuration.setExposedHeaders(List.of("Authorization"));
     configuration.setAllowCredentials(false);
 
     UrlBasedCorsConfigurationSource source =
