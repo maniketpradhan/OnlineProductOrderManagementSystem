@@ -1,0 +1,194 @@
+<main class="auth-screen" *ngIf="!auth?.token; else appLayout">
+  <section class="auth-media">
+    <img
+      src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1400&q=80"
+      alt="Warehouse shelves with packaged orders"
+    />
+    <div>
+      <span class="brand-mark">OF</span>
+      <h1>OrderFlow OMS</h1>
+      <p>Sign in to manage products, carts, and customer orders.</p>
+    </div>
+  </section>
+
+  <section class="auth-panel">
+    <div class="segmented">
+      <button [class.active]="authMode === 'login'" type="button" (click)="authMode = 'login'">Login</button>
+      <button [class.active]="authMode === 'register'" type="button" (click)="authMode = 'register'">Register</button>
+    </div>
+
+    <form *ngIf="authMode === 'login'; else registerFormTemplate" (ngSubmit)="login()" #loginNgForm="ngForm">
+      <label>Email <input name="email" type="email" [(ngModel)]="loginForm.email" required /></label>
+      <label>Password <input name="password" type="password" [(ngModel)]="loginForm.password" minlength="6" required /></label>
+      <button class="primary-button" type="submit" [disabled]="loginNgForm.invalid">Login</button>
+    </form>
+
+    <ng-template #registerFormTemplate>
+      <form (ngSubmit)="register()" #registerNgForm="ngForm">
+        <label>Full name <input name="fullName" [(ngModel)]="registerForm.fullName" required /></label>
+        <label>Phone <input name="phone" [(ngModel)]="registerForm.phone" pattern="[0-9]{10}" required /></label>
+        <label>Email <input name="email" type="email" [(ngModel)]="registerForm.email" required /></label>
+        <label>Password <input name="password" type="password" [(ngModel)]="registerForm.password" minlength="6" required /></label>
+        <button class="primary-button" type="submit" [disabled]="registerNgForm.invalid">Create account</button>
+      </form>
+    </ng-template>
+
+    <p class="inline-notice" *ngIf="notice">{{ notice }}</p>
+  </section>
+</main>
+
+<ng-template #appLayout>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <span class="brand-mark">OF</span>
+        <h1>OrderFlow OMS</h1>
+        <p>Products, carts, and orders connected to your Spring Boot API.</p>
+      </div>
+      <div class="user-panel">
+        <span>{{ auth?.fullName }}</span>
+        <small>{{ auth?.role }}</small>
+        <button class="icon-button" type="button" (click)="logout()" title="Sign out" aria-label="Sign out">X</button>
+      </div>
+    </header>
+
+    <div class="toast" *ngIf="notice">{{ notice }}</div>
+
+    <section class="summary-strip" aria-label="Store summary">
+      <article class="metric"><span class="metric-mark">PR</span><div><span>{{ products.length }}</span><small>Products</small></div></article>
+      <article class="metric"><span class="metric-mark">CT</span><div><span>{{ cart.length }}</span><small>Cart items</small></div></article>
+      <article class="metric"><span class="metric-mark">OR</span><div><span>{{ orders.length }}</span><small>Orders</small></div></article>
+      <article class="metric"><span class="metric-mark">OK</span><div><span>{{ loading ? "Syncing" : "Ready" }}</span><small>Status</small></div></article>
+    </section>
+
+    <div class="workspace">
+      <section class="catalog">
+        <div class="section-heading">
+          <div>
+            <h2>Catalog</h2>
+            <p>Search products or filter by category.</p>
+          </div>
+          <form class="searchbar" (ngSubmit)="searchProducts()">
+            <span aria-hidden="true">⌕</span>
+            <input name="keyword" [(ngModel)]="keyword" placeholder="Search products" aria-label="Search products" />
+          </form>
+        </div>
+
+        <div class="filter-row">
+          <button class="chip" [class.active]="categoryFilter === 'all'" type="button" (click)="filterByCategory('all')">All</button>
+          <button
+            class="chip"
+            [class.active]="category.categoryId === categoryFilter"
+            type="button"
+            *ngFor="let category of categories"
+            (click)="filterByCategory(category.categoryId)"
+          >
+            {{ category.categoryName }}
+          </button>
+        </div>
+
+        <div class="product-grid">
+          <article class="product-card" *ngFor="let product of products">
+            <img [src]="product.imageUrl || fallbackImage" [alt]="product.productName" (error)="imageFailed($event)" />
+            <div>
+              <span class="category-label">{{ product.category?.categoryName || "General" }}</span>
+              <h3>{{ product.productName }}</h3>
+              <p>{{ product.description }}</p>
+            </div>
+            <footer>
+              <div>
+                <strong>{{ product.price | currency: "INR" }}</strong>
+                <small>{{ product.stockQuantity }} in stock</small>
+              </div>
+              <div class="button-cluster">
+                <button class="primary-button compact" type="button" (click)="addToCart(product.productId)">Add</button>
+                <button
+                  class="icon-button danger"
+                  type="button"
+                  *ngIf="isAdmin"
+                  (click)="deleteProduct(product.productId)"
+                  title="Delete product"
+                  aria-label="Delete product"
+                >
+                  Del
+                </button>
+              </div>
+            </footer>
+          </article>
+          <p class="empty-state" *ngIf="!products.length">No products found.</p>
+        </div>
+      </section>
+
+      <aside class="side-rail">
+        <section class="panel">
+          <div class="section-heading compact-heading">
+            <h2>Cart</h2>
+            <strong>{{ cartTotal | currency: "INR" }}</strong>
+          </div>
+          <div class="stack-list">
+            <article class="line-item" *ngFor="let item of cart">
+              <div>
+                <strong>{{ item.product?.productName }}</strong>
+                <small>{{ item.product?.price | currency: "INR" }} each</small>
+              </div>
+              <div class="quantity-row">
+                <button type="button" (click)="updateCartQuantity(item, item.quantity - 1)" aria-label="Decrease quantity">-</button>
+                <span>{{ item.quantity }}</span>
+                <button type="button" (click)="updateCartQuantity(item, item.quantity + 1)" aria-label="Increase quantity">+</button>
+                <button class="icon-button danger" type="button" (click)="removeFromCart(item.cartItemId)" title="Remove item" aria-label="Remove item">
+                  Del
+                </button>
+              </div>
+            </article>
+            <p class="empty-state" *ngIf="!cart.length">Cart is empty.</p>
+          </div>
+          <button class="primary-button full" type="button" (click)="placeOrder()">Place Order</button>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading compact-heading">
+            <h2>Orders</h2>
+          </div>
+          <div class="stack-list">
+            <article class="line-item" *ngFor="let order of orders">
+              <div>
+                <strong>Order #{{ order.orderId }}</strong>
+                <small>{{ order.orderDate | date: "medium" }}</small>
+              </div>
+              <div class="order-status">
+                <span>{{ order.status }}</span>
+                <strong>{{ order.totalAmount | currency: "INR" }}</strong>
+              </div>
+            </article>
+            <p class="empty-state" *ngIf="!orders.length">No orders yet.</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <section class="admin-band" *ngIf="isAdmin">
+      <form class="admin-form" (ngSubmit)="addCategory()" #categoryNgForm="ngForm">
+        <h2><span class="metric-mark">CA</span>Add Category</h2>
+        <input name="categoryName" [(ngModel)]="categoryForm.categoryName" placeholder="Category name" required />
+        <textarea name="description" [(ngModel)]="categoryForm.description" placeholder="Description" rows="3"></textarea>
+        <button class="primary-button" type="submit" [disabled]="categoryNgForm.invalid">Save</button>
+      </form>
+
+      <form class="admin-form" (ngSubmit)="addProduct()" #productNgForm="ngForm">
+        <h2><span class="metric-mark">PR</span>Add Product</h2>
+        <input name="productName" [(ngModel)]="productForm.productName" placeholder="Product name" required />
+        <textarea name="description" [(ngModel)]="productForm.description" placeholder="Description" rows="3" required></textarea>
+        <div class="form-grid">
+          <input name="price" [(ngModel)]="productForm.price" placeholder="Price" type="number" min="1" step="0.01" required />
+          <input name="stockQuantity" [(ngModel)]="productForm.stockQuantity" placeholder="Stock" type="number" min="1" required />
+        </div>
+        <input name="imageUrl" [(ngModel)]="productForm.imageUrl" placeholder="Image URL" required />
+        <select name="categoryId" [(ngModel)]="productForm.categoryId" required>
+          <option [ngValue]="0">Choose category</option>
+          <option *ngFor="let category of categories" [ngValue]="category.categoryId">{{ category.categoryName }}</option>
+        </select>
+        <button class="primary-button" type="submit" [disabled]="productNgForm.invalid || !productForm.categoryId">Save</button>
+      </form>
+    </section>
+  </main>
+</ng-template>
