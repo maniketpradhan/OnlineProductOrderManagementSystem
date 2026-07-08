@@ -15,7 +15,7 @@ import {
 
 @Injectable({ providedIn: "root" })
 export class ApiService {
-  private readonly baseUrl = "https://onlineproductordermanagementsystem-production.up.railway.app/api";
+  private readonly baseUrl = "https://onlineproductordermanagementsystem-production.up.railway.app";
 
   constructor(private readonly http: HttpClient) {}
 
